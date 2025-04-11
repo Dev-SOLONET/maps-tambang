@@ -1,94 +1,135 @@
-// App.js
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Menu } from '@headlessui/react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+// Final App.js
+import { useState, useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  GeoJSON,
+  Polyline,
+} from "react-leaflet";
+import { Menu } from "@headlessui/react";
+import "leaflet/dist/leaflet.css";
+import miningAreas from "./assets/wilayah.json";
+import * as turf from "@turf/turf";
 
-// File GeoJSON
-import miningAreas from './assets/wilayah.geojson';
-
-// Style untuk area pertambangan
 const miningStyle = {
   color: "#ff7800",
   weight: 2,
   opacity: 0.8,
   fillColor: "#ffaa00",
-  fillOpacity: 0.2
+  fillOpacity: 0.2,
 };
 
-// Fix leaflet marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+function randomPointsInPoly(feature, count) {
+  const poly = turf.polygon(feature.geometry.coordinates);
+  const pts = [];
+  const bbox = turf.bbox(poly);
+  while (pts.length < count) {
+    const pt = turf.randomPoint(1, { bbox }).features[0];
+    if (turf.booleanPointInPolygon(pt, poly)) {
+      pts.push(pt.geometry.coordinates);
+    }
+  }
+  return pts;
+}
 
-const vehicles = [
-  {
-    id: 1,
-    name: 'HD-785',
-    status: 'active',
-    location: [-1.2382, 116.8523],
-    lastUpdate: '5 mins ago',
-    speed: '32 km/h',
-    fuel: '78%'
-  },
-  {
-    id: 2,
-    name: 'PC-2000',
-    status: 'maintenance',
-    location: [-0.5021, 117.1536],
-    lastUpdate: '2 hours ago',
-    speed: '0 km/h',
-    fuel: '45%'
-  },
-];
+function interpolatePath(coords, poly, step = 20) {
+  const path = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [lng1, lat1] = coords[i];
+    const [lng2, lat2] = coords[i + 1];
+
+    for (let s = 0; s <= step; s++) {
+      const t = s / step;
+      const lng = lng1 + (lng2 - lng1) * t;
+      const lat = lat1 + (lat2 - lat1) * t;
+      const point = turf.point([lng, lat]);
+
+      // Pastikan hanya titik yang ada dalam polygon yang dimasukkan
+      if (turf.booleanPointInPolygon(point, poly)) {
+        path.push([lat, lng]); // Leaflet pakai [lat, lng]
+      }
+    }
+  }
+  return path;
+}
+
+
+function initVehicles(feature) {
+  const poly = turf.polygon(feature.geometry.coordinates);
+  const realNames = [
+    "CAT 793F",
+    "Komatsu 930E",
+    "BelAZ 75710",
+    "Hitachi EH5000AC-3",
+    "Volvo A40G",
+    "Liebherr T 284",
+    "Terex MT 6300AC",
+    "Komatsu HD785-7",
+    "CAT 789D",
+    "Hitachi EX8000",
+  ];
+  return Array.from({ length: 10 }, (_, i) => {
+    const coords = randomPointsInPoly(feature, 6);
+    const path = interpolatePath(coords, poly, 20);
+    return {
+      id: i + 1,
+      name: realNames[i],
+      status: i % 2 === 0 ? "active" : "inactive",
+      path,
+      index: 0,
+      speed: `${Math.floor(Math.random() * 40 + 10)} km/h`,
+      fuel: `${Math.floor(Math.random() * 100)}%`,
+      tirePressure: `${Math.floor(Math.random() * 30 + 20)} PSI`,
+      lastUpdate: "baru saja",
+    };
+  });
+}
 
 export default function App() {
-  const [selectedVehicle, setSelectedVehicle] = useState(vehicles[0]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [vehicles, setVehicles] = useState([]);
+  const [geoData, setGeoData] = useState(null);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [geoData, setGeoData] = useState(null);
-
-  const filteredVehicles = vehicles.filter(vehicle =>
-    vehicle.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) setIsSidebarOpen(false);
+    const feat = miningAreas.features[0];
+    setGeoData(miningAreas);
+    const init = initVehicles(feat);
+    setVehicles(init);
+    setSelected(init[0]);
+  }, []);
+
+  useEffect(() => {
+    if (!geoData) return;
+    const interval = setInterval(() => {
+      setVehicles((prev) =>
+        prev.map((v) => {
+          if (v.status !== "active") return v;
+          const next = Math.min(v.index + 1, v.path.length - 1);
+          return { ...v, index: next, lastUpdate: "baru saja" };
+        })
+      );
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [geoData]);
+
+  useEffect(() => {
+    const resize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(false);
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
   }, []);
 
-  useEffect(() => {
-    // Load GeoJSON data
-    fetch(miningAreas)
-      .then(response => response.json())
-      .then(data => setGeoData(data))
-      .catch(error => console.error('Error loading GeoJSON:', error));
-  }, []);
-
-  // Fungsi untuk menampilkan popup GeoJSON
-  const onEachMiningArea = (feature, layer) => {
-    if (feature.properties) {
-      const popupContent = `
-        <div class="p-2">
-          <h4 class="font-semibold mb-1">${feature.properties.nama_wilayah || 'Area Tambang'}</h4>
-          <p class="text-sm">Perusahaan: ${feature.properties.perusahaan || '-'}</p>
-          <p class="text-sm">Jenis: ${feature.properties.jenis_tambang || '-'}</p>
-          <p class="text-sm">Status: ${feature.properties.status || '-'}</p>
-        </div>
-      `;
-      layer.bindPopup(popupContent);
-    }
-  };
+  const filtered = vehicles.filter((v) =>
+    v.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="h-screen flex flex-col">
@@ -99,182 +140,138 @@ export default function App() {
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="md:hidden p-2 hover:bg-gray-700 rounded-lg"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
           <h1 className="text-xl font-bold text-orange-400">MiningTracker</h1>
         </div>
-        
-        <Menu as="div" className="relative">
+        <Menu as="div" className="relative z-50">
           <Menu.Button className="flex items-center space-x-2 focus:outline-none">
             <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-              <span className="text-sm">AD</span>
+              AD
             </div>
             <span className="text-sm hidden md:block">Admin</span>
           </Menu.Button>
-          
-          <Menu.Items className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-1 focus:outline-none z-[1000]">
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  className={`${
-                    active ? 'bg-gray-700' : ''
-                  } w-full px-4 py-2 text-sm text-white text-left hover:bg-gray-700 transition-colors`}
-                >
-                  Profil Pengguna
-                </button>
-              )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  className={`${
-                    active ? 'bg-gray-700' : ''
-                  } w-full px-4 py-2 text-sm text-white text-left hover:bg-gray-700 transition-colors`}
-                >
-                  Pengaturan
-                </button>
-              )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  className={`${
-                    active ? 'bg-gray-700' : ''
-                  } w-full px-4 py-2 text-sm text-red-400 text-left hover:bg-gray-700 transition-colors`}
-                >
-                  Keluar
-                </button>
-              )}
-            </Menu.Item>
+          <Menu.Items className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-1 z-[200]">
+            {["Profil Pengguna", "Pengaturan", "Keluar"].map((txt, i) => (
+              <Menu.Item key={i}>
+                {({ active }) => (
+                  <button
+                    className={`${
+                      active ? "bg-gray-700" : ""
+                    } w-full px-4 py-2 text-sm ${
+                      txt === "Keluar" ? "text-red-400" : "text-white"
+                    } text-left`}
+                  >
+                    {txt}
+                  </button>
+                )}
+              </Menu.Item>
+            ))}
           </Menu.Items>
         </Menu>
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar Mobile Overlay */}
         {isMobile && isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[100]"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
-        {/* Sidebar */}
         <aside
-          className={`w-80 bg-gray-800 text-white flex flex-col border-r border-gray-700 fixed md:relative md:translate-x-0 transform h-full transition-transform duration-300 ease-in-out z-40 ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`w-72 bg-gray-800 text-white flex flex-col border-r border-gray-700 fixed md:relative transform h-full transition-transform duration-300 ease-in-out z-[150] ${
+            isMobile
+              ? isSidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full"
+              : "md:translate-x-0"
           }`}
         >
           <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold mb-4">Daftar Kendaraan</h2>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Cari kendaraan..."
-                className="w-full px-4 py-2 rounded-lg bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <svg
-                className="absolute right-3 top-2.5 h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
+            <input
+              type="text"
+              placeholder="Cari kendaraan..."
+              className="w-full p-2 rounded bg-gray-700"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {filteredVehicles.map((vehicle) => (
+            {filtered.map((v) => (
               <div
-                key={vehicle.id}
+                key={v.id}
                 onClick={() => {
-                  setSelectedVehicle(vehicle);
+                  setSelected(v);
                   if (isMobile) setIsSidebarOpen(false);
                 }}
-                className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                  selectedVehicle?.id === vehicle.id
-                    ? 'bg-gray-700'
-                    : 'bg-gray-900 hover:bg-gray-700'
+                className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                  selected?.id === v.id ? "bg-gray-600" : "hover:bg-gray-700"
                 }`}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">{vehicle.name}</h3>
-                    <span
-                      className={`inline-block px-2 py-1 text-xs rounded-full mt-2 ${
-                        vehicle.status === 'active'
-                          ? 'bg-green-600 text-green-100'
-                          : 'bg-red-600 text-red-100'
-                      }`}
-                    >
-                      {vehicle.status}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-400">{vehicle.lastUpdate}</span>
-                </div>
-                <div className="mt-3 text-sm space-y-1">
-                  <p className="text-gray-400">Kecepatan: {vehicle.speed}</p>
-                  <p className="text-gray-400">Bahan bakar: {vehicle.fuel}</p>
-                </div>
+                <h3 className="font-semibold">{v.name}</h3>
+                <p className="text-xs text-gray-400">
+                  Status: {v.status} | Kecepatan: {v.speed}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Bahan bakar: {v.fuel} | Tekanan Ban: {v.tirePressure}
+                </p>
               </div>
             ))}
           </div>
         </aside>
 
-        {/* Map */}
-        <div className="flex-1 bg-gray-900 relative z-10">
+        <div className="flex-1 relative z-0">
           <MapContainer
-            center={[-1.2382, 116.8523]}
-            zoom={6}
-            className="h-full w-full"
+            center={[-3.5924, 115.5977]}
+            zoom={12}
+            className="h-full w-full relative z-[10]"
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              attribution="© OpenStreetMap contributors"
             />
-
-          {geoData && (
-            <GeoJSON
-              data={geoData}
-              style={miningStyle}
-              onEachFeature={onEachMiningArea}
-            />
-          )}
-
-            {vehicles.map((vehicle) => (
-              <Marker key={vehicle.id} position={vehicle.location}>
-                <Popup>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">{vehicle.name}</h3>
-                    <div className="flex items-center space-x-2">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          vehicle.status === 'active'
-                            ? 'bg-green-600 text-white'
-                            : 'bg-red-600 text-white'
-                        }`}
-                      >
-                        {vehicle.status}
-                      </span>
-                      <span className="text-xs text-gray-600">{vehicle.lastUpdate}</span>
-                    </div>
-                    <div className="text-sm">
-                      <p>Kecepatan: {vehicle.speed}</p>
-                      <p>Bahan bakar: {vehicle.fuel}</p>
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
+            {geoData && <GeoJSON data={geoData} style={miningStyle} />}
+            {vehicles.map((v) => {
+              const pos = v.path[v.index];
+              return (
+                <CircleMarker
+                  key={v.id}
+                  center={pos}
+                  radius={8}
+                  pathOptions={{
+                    color: v.status === "active" ? "#00ff00" : "#ff0000",
+                    fillOpacity: 1,
+                  }}
+                >
+                  <Popup>
+                    <strong>{v.name}</strong>
+                    <div>Status: {v.status}</div>
+                    <div>Kecepatan: {v.speed}</div>
+                    <div>Bahan bakar: {v.fuel}</div>
+                    <div>Tekanan Ban: {v.tirePressure}</div>
+                  </Popup>
+                </CircleMarker>
+              );
+            })}
+            {vehicles.map((v) => (
+              <Polyline
+                key={`line-${v.id}`}
+                positions={v.path}
+                pathOptions={{ color: "#00bcd4", weight: 2 }}
+              />
             ))}
           </MapContainer>
         </div>
