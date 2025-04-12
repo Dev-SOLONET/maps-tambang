@@ -3,15 +3,18 @@ import { useState, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
-  CircleMarker,
-  Popup,
   GeoJSON,
-  Polyline,
 } from "react-leaflet";
 import { Menu } from "@headlessui/react";
 import "leaflet/dist/leaflet.css";
 import miningAreas from "./assets/wilayah.json";
-import * as turf from "@turf/turf";
+import RoutineMachine from "./components/RoutineMachine";
+import AnimatedRouting from "./components/AnimatedRouting";
+
+const waypoints = [
+  [-3.506558, 115.643138],
+  [-3.588372, 115.619539],
+];
 
 const miningStyle = {
   color: "#ff7800",
@@ -21,43 +24,7 @@ const miningStyle = {
   fillOpacity: 0.2,
 };
 
-function randomPointsInPoly(feature, count) {
-  const poly = turf.polygon(feature.geometry.coordinates);
-  const pts = [];
-  const bbox = turf.bbox(poly);
-  while (pts.length < count) {
-    const pt = turf.randomPoint(1, { bbox }).features[0];
-    if (turf.booleanPointInPolygon(pt, poly)) {
-      pts.push(pt.geometry.coordinates);
-    }
-  }
-  return pts;
-}
-
-function interpolatePath(coords, poly, step = 20) {
-  const path = [];
-  for (let i = 0; i < coords.length - 1; i++) {
-    const [lng1, lat1] = coords[i];
-    const [lng2, lat2] = coords[i + 1];
-
-    for (let s = 0; s <= step; s++) {
-      const t = s / step;
-      const lng = lng1 + (lng2 - lng1) * t;
-      const lat = lat1 + (lat2 - lat1) * t;
-      const point = turf.point([lng, lat]);
-
-      // Pastikan hanya titik yang ada dalam polygon yang dimasukkan
-      if (turf.booleanPointInPolygon(point, poly)) {
-        path.push([lat, lng]); // Leaflet pakai [lat, lng]
-      }
-    }
-  }
-  return path;
-}
-
-
-function initVehicles(feature) {
-  const poly = turf.polygon(feature.geometry.coordinates);
+function initVehicles() {
   const realNames = [
     "CAT 793F",
     "Komatsu 930E",
@@ -71,13 +38,10 @@ function initVehicles(feature) {
     "Hitachi EX8000",
   ];
   return Array.from({ length: 10 }, (_, i) => {
-    const coords = randomPointsInPoly(feature, 6);
-    const path = interpolatePath(coords, poly, 20);
     return {
       id: i + 1,
       name: realNames[i],
       status: i % 2 === 0 ? "active" : "inactive",
-      path,
       index: 0,
       speed: `${Math.floor(Math.random() * 40 + 10)} km/h`,
       fuel: `${Math.floor(Math.random() * 100)}%`,
@@ -102,20 +66,6 @@ export default function App() {
     setVehicles(init);
     setSelected(init[0]);
   }, []);
-
-  useEffect(() => {
-    if (!geoData) return;
-    const interval = setInterval(() => {
-      setVehicles((prev) =>
-        prev.map((v) => {
-          if (v.status !== "active") return v;
-          const next = Math.min(v.index + 1, v.path.length - 1);
-          return { ...v, index: next, lastUpdate: "baru saja" };
-        })
-      );
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [geoData]);
 
   useEffect(() => {
     const resize = () => {
@@ -244,35 +194,8 @@ export default function App() {
               attribution="© OpenStreetMap contributors"
             />
             {geoData && <GeoJSON data={geoData} style={miningStyle} />}
-            {vehicles.map((v) => {
-              const pos = v.path[v.index];
-              return (
-                <CircleMarker
-                  key={v.id}
-                  center={pos}
-                  radius={8}
-                  pathOptions={{
-                    color: v.status === "active" ? "#00ff00" : "#ff0000",
-                    fillOpacity: 1,
-                  }}
-                >
-                  <Popup>
-                    <strong>{v.name}</strong>
-                    <div>Status: {v.status}</div>
-                    <div>Kecepatan: {v.speed}</div>
-                    <div>Bahan bakar: {v.fuel}</div>
-                    <div>Tekanan Ban: {v.tirePressure}</div>
-                  </Popup>
-                </CircleMarker>
-              );
-            })}
-            {vehicles.map((v) => (
-              <Polyline
-                key={`line-${v.id}`}
-                positions={v.path}
-                pathOptions={{ color: "#00bcd4", weight: 2 }}
-              />
-            ))}
+            <RoutineMachine/>
+            {<AnimatedRouting waypoints={waypoints} />}
           </MapContainer>
         </div>
       </div>
