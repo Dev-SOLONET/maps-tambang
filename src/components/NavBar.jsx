@@ -1,23 +1,25 @@
 export default function NavBar({ active }) {
-    const items = [
-      "Live Dispatch",
-      "Analytics",
-      "Settings",
-      "Master Data",
-    ];
-    return (
-      <nav className="bg-gray-800 text-white px-4 py-2 flex space-x-4 overflow-x-auto">
-        {items.map((it) => (
-          <span
-            key={it}
-            className={`px-2 py-1 rounded ${
-              it === active ? "bg-blue-600" : "hover:bg-gray-700"
-            } cursor-pointer whitespace-nowrap`}
-          >
-            {it}
-          </span>
-        ))}
+  return (
+    <header className="bg-gray-800 shadow px-6 py-3 flex justify-between items-center">
+      <h1 className="text-xl font-bold text-white">PT BORNEO INDOBARA</h1>
+      <nav className="space-x-6 text-sm font-medium text-white">
+        <a
+          href="#"
+          className={
+            active === "Live Dispatch"
+              ? "text-blue-400 font-semibold"
+              : "hover:text-gray-300"
+          }
+        >
+          Live Dispatch
+        </a>
+        <a href="#" className="hover:text-gray-300">
+          History
+        </a>
+        <a href="#" className="hover:text-gray-300">
+          Settings
+        </a>
       </nav>
-    );
-  }
-  
+    </header>
+  );
+}

@@ -188,6 +188,14 @@ export default function App() {
             s.has(tid) ? s.delete(tid) : s.add(tid);
             setSelectedTrucks(s);
           }}
+          onSelectAllVisible={(ids) =>
+            setSelectedTrucks(new Set([...selectedTrucks, ...ids]))
+          }
+          onUnselectAllVisible={(ids) => {
+            const s = new Set(selectedTrucks);
+            ids.forEach((id) => s.delete(id));
+            setSelectedTrucks(s);
+          }}
         />
 
         <MapView

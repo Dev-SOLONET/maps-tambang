@@ -3,9 +3,9 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip } from "react-l
 import "leaflet/dist/leaflet.css";
 
 const STATUS_COLORS = {
-  active: "#38a169",
-  inactive: "#a0aec0",
-  maintenance: "#dd6b20",
+  active: "#00FF00",       // Bright green
+  inactive: "#FF0000",     // Bright red
+  maintenance: "#FFFF00",   // Bright yellow
 };
 
 export default function MapView({
@@ -20,12 +20,13 @@ export default function MapView({
     <div className="flex-1 relative">
       <MapContainer center={[-3.6, 115.6]} zoom={12} className="h-full w-full z-0">
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           attribution="© OpenStreetMap contributors"
+          subdomains={["mt0", "mt1", "mt2", "mt3"]}
         />
 
         {showGeoJson && (
-          <GeoJSON data={areaGeoJson} style={{ color: '#FFA725', weight: 2, fillOpacity: 0.2 }} />
+          <GeoJSON data={areaGeoJson} style={{ color: '#FFFFFF', weight: 2, fillOpacity: 0.2 }} />
         )}
 
         {trucks.map((t) => (
@@ -49,7 +50,7 @@ export default function MapView({
       <div className="absolute top-4 right-4 bg-white p-2 rounded shadow space-y-1 z-20 text-sm">
         <label className="flex items-center space-x-2">
           <input type="checkbox" checked={showGeoJson} onChange={onToggleGeoJson} />
-          <span>Area GeoJSON</span>
+          <span>Mining Area</span>
         </label>
         {Object.keys(showStatus).map((key) => (
           <label key={key} className="flex items-center space-x-2">
@@ -58,7 +59,7 @@ export default function MapView({
               checked={showStatus[key]}
               onChange={() => onToggleStatus(key)}
             />
-            <span>Show {key.charAt(0).toUpperCase() + key.slice(1)}</span>
+            <span>Truck {key.charAt(0).toUpperCase() + key.slice(1)}</span>
           </label>
         ))}
       </div>
