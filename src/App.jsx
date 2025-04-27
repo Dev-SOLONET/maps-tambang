@@ -105,6 +105,7 @@ const weightedStatus = () => {
 };
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   // State filter mitra dan status
   const [selectedPartners, setSelectedPartners] = useState(
     new Set(BUSINESS_PARTNERS.map((p) => p.id))
@@ -165,47 +166,56 @@ export default function App() {
     [allTrucks, selectedPartners, selectedTrucks, showStatus]
   );
 
-  const [loading] = useState(false);
-
   return (
     <div className="h-screen flex flex-col">
-      <NavBar active="Live Dispatch" />
+      <NavBar
+        active="Live Dispatch"
+        onMenuClick={() => setSidebarOpen(true)}
+      />
       <div className="flex flex-1 relative">
-        {loading && <LoadingOverlay />}
-
         <Sidebar
           businessPartners={BUSINESS_PARTNERS}
           selectedPartners={selectedPartners}
-          onTogglePartner={(pid) => {
+          onTogglePartner={(id) => {
             const s = new Set(selectedPartners);
-            s.has(pid) ? s.delete(pid) : s.add(pid);
+            s.has(id) ? s.delete(id) : s.add(id);
             setSelectedPartners(s);
           }}
           dumpTrucks={allTrucks}
           selectedTrucks={selectedTrucks}
-          onToggleTruck={(tid) => {
+          onToggleTruck={(id) => {
             const s = new Set(selectedTrucks);
-            s.has(tid) ? s.delete(tid) : s.add(tid);
+            s.has(id) ? s.delete(id) : s.add(id);
             setSelectedTrucks(s);
           }}
-          onSelectAllVisible={(ids) =>
-            setSelectedTrucks(new Set([...selectedTrucks, ...ids]))
-          }
+          onSelectAllVisible={(ids) => {
+            const s = new Set(selectedTrucks);
+            ids.forEach(i => s.add(i));
+            setSelectedTrucks(s);
+          }}
           onUnselectAllVisible={(ids) => {
             const s = new Set(selectedTrucks);
-            ids.forEach((id) => s.delete(id));
+            ids.forEach(i => s.delete(i));
             setSelectedTrucks(s);
           }}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
-
+        {/* backdrop when sidebar open on mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         <MapView
           areaGeoJson={AREA_GEOJSON}
           trucks={visibleTrucks}
           showGeoJson={showGeoJson}
-          onToggleGeoJson={() => setShowGeoJson((v) => !v)}
+          onToggleGeoJson={() => setShowGeoJson(v => !v)}
           showStatus={showStatus}
-          onToggleStatus={(key) =>
-            setShowStatus((prev) => ({ ...prev, [key]: !prev[key] }))
+          onToggleStatus={key =>
+            setShowStatus(prev => ({ ...prev, [key]: !prev[key] }))
           }
         />
       </div>
