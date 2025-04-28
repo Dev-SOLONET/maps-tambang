@@ -1,203 +1,223 @@
-// Final App.js
-import { useState, useEffect } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  GeoJSON,
-} from "react-leaflet";
-import { Menu } from "@headlessui/react";
-import "leaflet/dist/leaflet.css";
-import miningAreas from "./assets/wilayah.json";
-import RoutineMachine from "./components/RoutineMachine";
-import AnimatedRouting from "./components/AnimatedRouting";
+/* App.jsx */
+import { useState, useEffect, useMemo } from "react";
+import * as turf from "@turf/turf";
+import NavBar from "./components/NavBar";
+import Sidebar from "./components/Sidebar.jsx";
+import MapView from "./components/MapView";
+import LoadingOverlay from "./components/LoadingOverlay";
 
-const waypoints = [
-  [-3.506558, 115.643138],
-  [-3.588372, 115.619539],
-];
+// Daftar mitra
+const BUSINESS_PARTNERS = Array.from({ length: 11 }, (_, i) => ({
+  id: i + 1,
+  name: `Partner ${i + 1}`,
+}));
 
-const miningStyle = {
-  color: "#ff7800",
-  weight: 2,
-  opacity: 0.8,
-  fillColor: "#ffaa00",
-  fillOpacity: 0.2,
+// Area GeoJSON polygon
+const AREA_GEOJSON = {
+  type: "Feature",
+  properties: { Name: "PT INDOBARA" },
+  geometry: {
+    type: "Polygon",
+    coordinates: [
+      [
+        [115.604399949931505, -3.545400075547209, 0.0],
+        [115.604399841131098, -3.608799574004828, 0.0],
+        [115.649400029697503, -3.608799509217319, 0.0],
+        [115.649400017089704, -3.663100293456181, 0.0],
+        [115.617400059975793, -3.663099780174879, 0.0],
+        [115.617399737213503, -3.685699156803738, 0.0],
+        [115.649299960676103, -3.685699068800897, 0.0],
+        [115.649300362663595, -3.699299673460462, 0.0],
+        [115.617800049745696, -3.699300020057011, 0.0],
+        [115.6177999530113, -3.717199908413447, 0.0],
+        [115.658299919322602, -3.717200000114277, 0.0],
+        [115.6582955763173, -3.473005894715275, 0.0],
+        [115.568699602091598, -3.473001685807625, 0.0],
+        [115.568700182646694, -3.464001541662113, 0.0],
+        [115.555099828419003, -3.463999391784724, 0.0],
+        [115.555099291465098, -3.473003271644793, 0.0],
+        [115.532700208403895, -3.473001476768178, 0.0],
+        [115.532699846387402, -3.463900605411753, 0.0],
+        [115.550701359743002, -3.463902395098822, 0.0],
+        [115.5507013482556, -3.454898213912309, 0.0],
+        [115.568701230550005, -3.454902873855015, 0.0],
+        [115.568700726908006, -3.445900276606981, 0.0],
+        [115.577700266719404, -3.445900134950424, 0.0],
+        [115.577700019488205, -3.431898966201222, 0.0],
+        [115.559699638559096, -3.431899648314737, 0.0],
+        [115.559699554334102, -3.437400397522957, 0.0],
+        [115.550100512253806, -3.437398099998878, 0.0],
+        [115.550099020797404, -3.450002211390146, 0.0],
+        [115.532703272530895, -3.449999179807085, 0.0],
+        [115.532700637088993, -3.454899270607867, 0.0],
+        [115.523702194253303, -3.454899042442723, 0.0],
+        [115.523699255391406, -3.463901335023041, 0.0],
+        [115.517901076646893, -3.463899658740474, 0.0],
+        [115.517900197349306, -3.467902281514015, 0.0],
+        [115.514600138263603, -3.467902292826565, 0.0],
+        [115.514601072048507, -3.50010155304351, 0.0],
+        [115.496599227790597, -3.50009900533689, 0.0],
+        [115.496599869340898, -3.518100005601176, 0.0],
+        [115.466797471563495, -3.518103740087548, 0.0],
+        [115.466801168336701, -3.550206921843847, 0.0],
+        [115.442500430814604, -3.550203582815326, 0.0],
+        [115.442497952207603, -3.563204681010987, 0.0],
+        [115.432199323066001, -3.563200126588743, 0.0],
+        [115.432199985374197, -3.575400350745974, 0.0],
+        [115.4738011947736, -3.575400021250577, 0.0],
+        [115.473797766754501, -3.667299052802766, 0.0],
+        [115.478300326726696, -3.667298846101514, 0.0],
+        [115.478299650158803, -3.699001512244875, 0.0],
+        [115.473698702561805, -3.698999777578339, 0.0],
+        [115.473698840205799, -3.706300548298581, 0.0],
+        [115.481699037262302, -3.706400782574116, 0.0],
+        [115.4817010345688, -3.717102490691376, 0.0],
+        [115.505201004278504, -3.717098288779876, 0.0],
+        [115.505299006694997, -3.635700209735227, 0.0],
+        [115.487399266748895, -3.635701682784649, 0.0],
+        [115.487397660302193, -3.545299693708786, 0.0],
+        [115.5010009898878, -3.545299520128636, 0.0],
+        [115.500999334020705, -3.536300365773843, 0.0],
+        [115.514602134835499, -3.536297749737575, 0.0],
+        [115.514599616947706, -3.518200242642467, 0.0],
+        [115.532599668902606, -3.518200602467881, 0.0],
+        [115.532599481961398, -3.509199349853453, 0.0],
+        [115.541641655013905, -3.509228095023962, 0.0],
+        [115.541599827827795, -3.500200339853857, 0.0],
+        [115.577599166446404, -3.500199675893057, 0.0],
+        [115.577599706645202, -3.509299212907206, 0.0],
+        [115.604599070000702, -3.509301495077436, 0.0],
+        [115.604600094546797, -3.518300046458291, 0.0],
+        [115.613499987067996, -3.518300064005411, 0.0],
+        [115.613499543131596, -3.54540116002996, 0.0],
+        [115.604399949931505, -3.545400075547209, 0.0],
+      ],
+    ],
+  },
 };
 
-function initVehicles() {
-  const realNames = [
-    "CAT 793F",
-    "Komatsu 930E",
-    "BelAZ 75710",
-    "Hitachi EH5000AC-3",
-    "Volvo A40G",
-    "Liebherr T 284",
-    "Terex MT 6300AC",
-    "Komatsu HD785-7",
-    "CAT 789D",
-    "Hitachi EX8000",
-  ];
-  return Array.from({ length: 10 }, (_, i) => {
-    return {
-      id: i + 1,
-      name: realNames[i],
-      status: i % 2 === 0 ? "active" : "inactive",
-      index: 0,
-      speed: `${Math.floor(Math.random() * 40 + 10)} km/h`,
-      fuel: `${Math.floor(Math.random() * 100)}%`,
-      tirePressure: `${Math.floor(Math.random() * 30 + 20)} PSI`,
-      lastUpdate: "baru saja",
-    };
-  });
-}
+// Sampling weighted status
+const weightedStatus = () => {
+  const r = Math.random();
+  if (r < 0.7) return "active";
+  if (r < 0.8) return "inactive";
+  return "maintenance";
+};
 
 export default function App() {
-  const [vehicles, setVehicles] = useState([]);
-  const [geoData, setGeoData] = useState(null);
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // State filter mitra dan status
+  const [selectedPartners, setSelectedPartners] = useState(
+    new Set(BUSINESS_PARTNERS.map((p) => p.id))
+  );
+  const [selectedTrucks, setSelectedTrucks] = useState(new Set());
 
-  useEffect(() => {
-    const feat = miningAreas.features[0];
-    setGeoData(miningAreas);
-    const init = initVehicles(feat);
-    setVehicles(init);
-    setSelected(init[0]);
+  // Overlay toggles
+  const [showGeoJson, setShowGeoJson] = useState(true);
+  const [showStatus, setShowStatus] = useState({
+    active: true,
+    inactive: true,
+    maintenance: true,
+  });
+
+  // Generate 1000 dump trucks satu kali dengan posisi di dalam polygon
+  const allTrucks = useMemo(() => {
+    const trucks = [];
+    const perPartner = Math.floor(1000 / BUSINESS_PARTNERS.length);
+    let rem = 1000 - perPartner * BUSINESS_PARTNERS.length;
+    let idCounter = 1;
+    const bbox = turf.bbox(AREA_GEOJSON);
+
+    BUSINESS_PARTNERS.forEach((p) => {
+      const count = perPartner + (rem-- > 0 ? 1 : 0);
+      for (let i = 0; i < count; i++) {
+        // sampling random dalam polygon
+        let point;
+        do {
+          point = turf.randomPoint(1, { bbox }).features[0];
+        } while (!turf.booleanPointInPolygon(point, AREA_GEOJSON));
+        const [lng, lat] = point.geometry.coordinates;
+
+        trucks.push({
+          id: idCounter,
+          name: `${p.name} - Truck ${i + 1}`,
+          businessPartnerId: p.id,
+          status: weightedStatus(),
+          coords: [lat, lng],
+        });
+        idCounter++;
+      }
+    });
+
+    // init selected all
+    setSelectedTrucks(new Set(trucks.map((t) => t.id)));
+    return trucks;
   }, []);
 
-  useEffect(() => {
-    const resize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setIsSidebarOpen(false);
-    };
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  const filtered = vehicles.filter((v) =>
-    v.name.toLowerCase().includes(search.toLowerCase())
+  // Hitung yang visible berdasarkan filter
+  const visibleTrucks = useMemo(
+    () =>
+      allTrucks.filter(
+        (t) =>
+          selectedPartners.has(t.businessPartnerId) &&
+          selectedTrucks.has(t.id) &&
+          showStatus[t.status]
+      ),
+    [allTrucks, selectedPartners, selectedTrucks, showStatus]
   );
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-900 text-white px-4 md:px-6 py-4 flex items-center justify-between border-b border-gray-700 relative z-50">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="md:hidden p-2 hover:bg-gray-700 rounded-lg"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-          <h1 className="text-xl font-bold text-orange-400">MiningTracker</h1>
-        </div>
-        <Menu as="div" className="relative z-50">
-          <Menu.Button className="flex items-center space-x-2 focus:outline-none">
-            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-              AD
-            </div>
-            <span className="text-sm hidden md:block">Admin</span>
-          </Menu.Button>
-          <Menu.Items className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-1 z-[200]">
-            {["Profil Pengguna", "Pengaturan", "Keluar"].map((txt, i) => (
-              <Menu.Item key={i}>
-                {({ active }) => (
-                  <button
-                    className={`${
-                      active ? "bg-gray-700" : ""
-                    } w-full px-4 py-2 text-sm ${
-                      txt === "Keluar" ? "text-red-400" : "text-white"
-                    } text-left`}
-                  >
-                    {txt}
-                  </button>
-                )}
-              </Menu.Item>
-            ))}
-          </Menu.Items>
-        </Menu>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden relative">
-        {isMobile && isSidebarOpen && (
+      <NavBar
+        active="Live Dispatch"
+        onMenuClick={() => setSidebarOpen(true)}
+      />
+      <div className="flex flex-1 relative">
+        <Sidebar
+          businessPartners={BUSINESS_PARTNERS}
+          selectedPartners={selectedPartners}
+          onTogglePartner={(id) => {
+            const s = new Set(selectedPartners);
+            s.has(id) ? s.delete(id) : s.add(id);
+            setSelectedPartners(s);
+          }}
+          dumpTrucks={allTrucks}
+          selectedTrucks={selectedTrucks}
+          onToggleTruck={(id) => {
+            const s = new Set(selectedTrucks);
+            s.has(id) ? s.delete(id) : s.add(id);
+            setSelectedTrucks(s);
+          }}
+          onSelectAllVisible={(ids) => {
+            const s = new Set(selectedTrucks);
+            ids.forEach(i => s.add(i));
+            setSelectedTrucks(s);
+          }}
+          onUnselectAllVisible={(ids) => {
+            const s = new Set(selectedTrucks);
+            ids.forEach(i => s.delete(i));
+            setSelectedTrucks(s);
+          }}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+        {/* backdrop when sidebar open on mobile */}
+        {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-[100]"
-            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
           />
         )}
-
-        <aside
-          className={`w-72 bg-gray-800 text-white flex flex-col border-r border-gray-700 fixed md:relative transform h-full transition-transform duration-300 ease-in-out z-[150] ${
-            isMobile
-              ? isSidebarOpen
-                ? "translate-x-0"
-                : "-translate-x-full"
-              : "md:translate-x-0"
-          }`}
-        >
-          <div className="p-4 border-b border-gray-700">
-            <input
-              type="text"
-              placeholder="Cari kendaraan..."
-              className="w-full p-2 rounded bg-gray-700"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {filtered.map((v) => (
-              <div
-                key={v.id}
-                onClick={() => {
-                  setSelected(v);
-                  if (isMobile) setIsSidebarOpen(false);
-                }}
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                  selected?.id === v.id ? "bg-gray-600" : "hover:bg-gray-700"
-                }`}
-              >
-                <h3 className="font-semibold">{v.name}</h3>
-                <p className="text-xs text-gray-400">
-                  Status: {v.status} | Kecepatan: {v.speed}
-                </p>
-                <p className="text-xs text-gray-400">
-                  Bahan bakar: {v.fuel} | Tekanan Ban: {v.tirePressure}
-                </p>
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        <div className="flex-1 relative z-0">
-          <MapContainer
-            center={[-3.5924, 115.5977]}
-            zoom={12}
-            className="h-full w-full relative z-[10]"
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="© OpenStreetMap contributors"
-            />
-            {geoData && <GeoJSON data={geoData} style={miningStyle} />}
-            <RoutineMachine/>
-            {<AnimatedRouting waypoints={waypoints} />}
-          </MapContainer>
-        </div>
+        <MapView
+          areaGeoJson={AREA_GEOJSON}
+          trucks={visibleTrucks}
+          showGeoJson={showGeoJson}
+          onToggleGeoJson={() => setShowGeoJson(v => !v)}
+          showStatus={showStatus}
+          onToggleStatus={key =>
+            setShowStatus(prev => ({ ...prev, [key]: !prev[key] }))
+          }
+        />
       </div>
     </div>
   );
