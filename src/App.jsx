@@ -105,6 +105,7 @@ const weightedStatus = () => {
 };
 
 export default function App() {
+  const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // State filter mitra dan status
   const [selectedPartners, setSelectedPartners] = useState(
@@ -168,6 +169,11 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
+      {isLoading && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <LoadingOverlay />
+        </div>
+      )}
       <NavBar
         active="Live Dispatch"
         onMenuClick={() => setSidebarOpen(true)}

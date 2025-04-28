@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Combobox } from "@headlessui/react";
 import LoadingOverlay from "./LoadingOverlay";
+import { createPortal } from "react-dom";
 
 const STATUS_COLORS = {
   active: "#00FF00",
@@ -14,6 +15,7 @@ export default function Sidebar({
   onTogglePartner,
   dumpTrucks,
   selectedTrucks,
+  onToggleTruck,
   onSelectAllVisible,
   onUnselectAllVisible,
   open,
@@ -64,11 +66,13 @@ export default function Sidebar({
       )}
 
       {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 z-50">
+      {isLoading && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center z-50">
           <LoadingOverlay />
-        </div>
+        </div>,
+        document.body
       )}
+
 
       {/* Legend */}
       <div className="mb-4">
