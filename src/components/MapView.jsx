@@ -152,20 +152,12 @@ export default function MapView({
                 ✕
               </button>
             </div>
-            {/* Last update */}
-            <div className="text-sm text-gray-500 mb-4">
-              Last updated: { new Date().toLocaleString() }
-            </div>
             {/* GPS History */}
             <div className="mb-6">
-              <h3 className="font-semibold mb-2">GPS History</h3>
-              <ul className="text-sm max-h-40 overflow-y-auto list-disc list-inside space-y-1">
-                {(selectedTruck?.coords || []).map((c, i) => (
-                  <li key={i}>
-                    {c[0]?.toFixed(5) ?? "N/A"}, {c[1]?.toFixed(5) ?? "N/A"}
-                  </li>
-                ))}
-              </ul>
+              <h3 className="font-semibold mb-2">GPS Data</h3>
+              <div className="text-sm text-gray-700">
+                Lat: {selectedTruck?.coords[0]?.toFixed(5)}, Lng: {selectedTruck?.coords[1]?.toFixed(5)}
+              </div>
             </div>
 
             {/* Tire Pressures */}
@@ -209,6 +201,10 @@ export default function MapView({
                   ))}
                 </div>
               </div>
+              {/* Last update */}
+            </div>
+            <div className="text-sm text-gray-500">
+              Last updated: { new Date().toLocaleString() }
             </div>
           </Transition.Child>
         </div>
