@@ -5,7 +5,8 @@ import {
   GeoJSON,
   CircleMarker,
   Tooltip,
-  Marker
+  Marker,
+  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Transition } from "@headlessui/react";
@@ -18,7 +19,7 @@ const STATUS_COLORS = {
 
 // Custom DivIcon generator for ping effect
 function createPingIcon(color) {
-  if(color === "#FF0000") {
+  if (color === "#FF0000") {
     return new L.DivIcon({
       html: `
         <span class="relative flex items-center justify-center h-3 w-3">
@@ -30,7 +31,7 @@ function createPingIcon(color) {
       iconSize: [16, 16],
       iconAnchor: [8, 8],
     });
-  }else {
+  } else {
     return new L.DivIcon({
       html: `
         <span class="relative flex items-center justify-center h-4 w-4">
@@ -44,6 +45,16 @@ function createPingIcon(color) {
   }
 }
 
+function ZoomWatcher({ setZoom }) {
+  useMapEvents({
+    zoomend: (e) => {
+      setZoom(e.target.getZoom());
+      console.log("Zoom level:", e.target.getZoom());
+    },
+  });
+  return null;
+}
+
 export default function MapView({
   areaGeoJson,
   trucks,
@@ -53,6 +64,7 @@ export default function MapView({
   onToggleStatus,
 }) {
   const [selectedTruck, setSelectedTruck] = useState(null);
+  const [zoom, setZoom] = useState(12);
 
   return (
     <div className="flex-1 relative">
@@ -74,6 +86,7 @@ export default function MapView({
           />
         )}
 
+        <ZoomWatcher setZoom={setZoom} />
         {trucks
           .filter((t) => showStatus[t.status])
           .map((t) => (
@@ -87,7 +100,7 @@ export default function MapView({
               {/* Original circle marker */}
               <CircleMarker
                 center={t.coords}
-                radius={1}
+                radius={zoom >= 15 ? 5 : 1}
                 pathOptions={{
                   color: STATUS_COLORS[t.status],
                   fillOpacity: 0.8,
@@ -152,59 +165,66 @@ export default function MapView({
                 ✕
               </button>
             </div>
-            {/* GPS History */}
+            {/* GPS Data */}
             <div className="mb-6">
-              <h3 className="font-semibold mb-2">GPS Data</h3>
+              <h3 className="font-semibold mb-2">GPS Data :</h3>
               <div className="text-sm text-gray-700">
-                Lat: {selectedTruck?.coords[0]?.toFixed(5)}, Lng: {selectedTruck?.coords[1]?.toFixed(5)}
+                Lat: {selectedTruck?.coords[0]?.toFixed(5)}, Lng:{" "}
+                {selectedTruck?.coords[1]?.toFixed(5)}
               </div>
             </div>
 
             {/* Tire Pressures */}
             <div className="mb-6">
-              <h3 className="font-semibold mb-2">Tire Pressures</h3>
+              <h3 className="font-semibold mb-2">Tire Pressures :</h3>
               {/* Front Tires */}
-              <div className="text-xs text-gray-500 mb-1 text-center">Front Tires</div>
+              <div className="text-xs font-bold text-gray-800 mb-1 text-center">
+                Front Tires
+              </div>
               <div className="flex justify-center space-x-4 mb-4">
                 {Array.from({ length: 2 }).map((_, i) => (
                   <div
                     key={i}
                     className="p-2 bg-gray-100 rounded-full text-center text-xs"
                   >
-                    {Math.floor(30 + Math.random() * 10)} PSI
+                    {Math.floor(30 + Math.random() * 10)} PSI /{" "}
+                    {Math.floor(30 + Math.random() * 10)}°C
                   </div>
                 ))}
               </div>
               {/* Rear Tires */}
-              <div className="text-xs text-gray-500 mb-1 text-center">Rear Tires</div>
-              <div className="flex justify-center space-x-8">
-                {/* Left side rear */}
+              <div className="text-xs font-bold text-gray-800 mb-1 text-center">
+                Rear Tires
+              </div>
+              <div className="flex justify-center space-x-8 mb-4">
                 <div className="flex flex-col items-center space-y-1">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
                       className="p-2 bg-gray-100 rounded-full text-center text-xs"
                     >
-                      {Math.floor(30 + Math.random() * 10)} PSI
+                      {Math.floor(30 + Math.random() * 10)} PSI /{" "}
+                      {Math.floor(30 + Math.random() * 10)}°C
                     </div>
                   ))}
                 </div>
-                {/* Right side rear */}
                 <div className="flex flex-col items-center space-y-1">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
                       className="p-2 bg-gray-100 rounded-full text-center text-xs"
                     >
-                      {Math.floor(30 + Math.random() * 10)} PSI
+                      {Math.floor(30 + Math.random() * 10)} PSI /{" "}
+                      {Math.floor(30 + Math.random() * 10)}°C
                     </div>
                   ))}
                 </div>
               </div>
-              {/* Last update */}
             </div>
-            <div className="text-sm text-gray-500">
-              Last updated: { new Date().toLocaleString() }
+
+            {/* Last update */}
+            <div className="text-sm text-gray-500 italic">
+              Last updated: {new Date().toLocaleString()}
             </div>
           </Transition.Child>
         </div>

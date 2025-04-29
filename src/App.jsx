@@ -1,5 +1,5 @@
 /* App.jsx */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import * as turf from "@turf/turf";
 import NavBar from "./components/NavBar";
 import Sidebar from "./components/Sidebar.jsx";
