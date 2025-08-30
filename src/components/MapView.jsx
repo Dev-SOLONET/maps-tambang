@@ -11,6 +11,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import { Transition } from "@headlessui/react";
 import L from "leaflet";
+import TireLayout from "./TireLayout";
 const STATUS_COLORS = {
   active: "#00FF00",
   inactive: "#FF0000",
@@ -152,7 +153,7 @@ export default function MapView({
             leave="transition-transform duration-200 ease-in"
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-90"
-            className="bg-white p-6 rounded-xl shadow-2xl w-96"
+            className="bg-white w-[1100px] p-6 rounded-2xl shadow-xl relative"
           >
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
@@ -174,53 +175,24 @@ export default function MapView({
               </div>
             </div>
 
-            {/* Tire Pressures */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-2">Tire Pressures :</h3>
-              {/* Front Tires */}
-              <div className="text-xs font-bold text-gray-800 mb-1 text-center">
-                Front Tires
-              </div>
-              <div className="flex justify-center space-x-4 mb-4">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-2 bg-gray-100 rounded-full text-center text-xs"
-                  >
-                    {Math.floor(30 + Math.random() * 10)} PSI /{" "}
-                    {Math.floor(30 + Math.random() * 10)}°C
-                  </div>
-                ))}
-              </div>
-              {/* Rear Tires */}
-              <div className="text-xs font-bold text-gray-800 mb-1 text-center">
-                Rear Tires
-              </div>
-              <div className="flex justify-center space-x-8 mb-4">
-                <div className="flex flex-col items-center space-y-1">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="p-2 bg-gray-100 rounded-full text-center text-xs"
-                    >
-                      {Math.floor(30 + Math.random() * 10)} PSI /{" "}
-                      {Math.floor(30 + Math.random() * 10)}°C
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-col items-center space-y-1">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="p-2 bg-gray-100 rounded-full text-center text-xs"
-                    >
-                      {Math.floor(30 + Math.random() * 10)} PSI /{" "}
-                      {Math.floor(30 + Math.random() * 10)}°C
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Tire Pressures Visualization */}
+            <TireLayout
+              tiresLeft={[
+                { pressure: 90, temperature: 35 },
+                { pressure: 87, temperature: 33 },
+                { pressure: 86, temperature: 32 },
+                { pressure: 91, temperature: 34 },
+                { pressure: 88, temperature: 33 },
+              ]}
+              tiresRight={[
+                { pressure: 92, temperature: 36 },
+                { pressure: 89, temperature: 33 },
+                { pressure: 90, temperature: 32 },
+                { pressure: 94, temperature: 34 },
+                { pressure: 95, temperature: 35 },
+              ]}
+            />
+
 
             {/* Last update */}
             <div className="text-sm text-gray-500 italic">
