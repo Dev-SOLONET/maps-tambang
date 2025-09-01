@@ -166,36 +166,29 @@ export default function MapView({
                 ✕
               </button>
             </div>
-            {/* GPS Data */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-2">GPS Data :</h3>
-              <div className="text-sm text-gray-700">
-                Lat: {selectedTruck?.coords[0]?.toFixed(5)}, Lng:{" "}
-                {selectedTruck?.coords[1]?.toFixed(5)}
-              </div>
-            </div>
 
             {/* Tire Pressures Visualization */}
             <TireLayout
-              tiresLeft={[
-                { pressure: 90, temperature: 35 },
-                { pressure: 87, temperature: 33 },
-                { pressure: 86, temperature: 32 },
-                { pressure: 91, temperature: 34 },
-                { pressure: 88, temperature: 33 },
-              ]}
-              tiresRight={[
-                { pressure: 92, temperature: 36 },
-                { pressure: 89, temperature: 33 },
-                { pressure: 90, temperature: 32 },
-                { pressure: 94, temperature: 34 },
-                { pressure: 95, temperature: 35 },
-              ]}
+              tpdata={{
+                sn: "987654321",
+                simNumber: "89860814262380084181",
+                tires: [
+                  { tireNo: 1, exType: "", tiprValue: 248.2, tempValue: 38.2 },
+                  { tireNo: 2, exType: "", tiprValue: 250.0, tempValue: 37.0 },
+                  { tireNo: 3, exType: "", tiprValue: 245.0, tempValue: 36.0 },
+                  { tireNo: 4, exType: "", tiprValue: 246.0, tempValue: 35.0 },
+                  { tireNo: 5, exType: "", tiprValue: 247.0, tempValue: 34.0 },
+                  { tireNo: 6, exType: "", tiprValue: 249.0, tempValue: 36.0 },
+                  { tireNo: 7, exType: "", tiprValue: 244.0, tempValue: 35.0 },
+                  { tireNo: 8, exType: "", tiprValue: 243.0, tempValue: 34.0 },
+                  { tireNo: 9, exType: "", tiprValue: 242.0, tempValue: 33.0 },
+                  { tireNo: 10, exType: "", tiprValue: 241.0, tempValue: 32.0 }
+                ]
+              }}
             />
 
-
             {/* Last update */}
-            <div className="text-sm text-gray-500 italic">
+            <div className="text-sm text-gray-500 italic mt-4">
               Last updated: {new Date().toLocaleString()}
             </div>
           </Transition.Child>
